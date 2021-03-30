@@ -67,9 +67,7 @@ collections:
     output: true
     #description: "My thoughts and ideas" # The post list page content
     feature_text: |
-    On that day, I bid you remember this:That no matter how far your journey may take you, you stand where you stand by virtue of the road you walked to get there. |
-    For in times of hardship, when you fear you cannot go on…  |
-    The joy you have known, the pain you have felt, the prayers you have whispered and answered--they shall ever be your strength and your comfort.  |
+      On that day, I bid you remember this:That no matter how far your journey may take you, you stand where you stand by virtue of the road you walked to get there. For in times of hardship, when you fear you cannot go on…  The joy you have known, the pain you have felt, the prayers you have whispered and answered--they shall ever be your strength and your comfort.
     feature_image: "https://picsum.photos/2560/600?image=866"
 
 # 6. Jekyll collections settings

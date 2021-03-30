@@ -65,9 +65,11 @@ collections:
   posts:
     title: Posts # Needed for Siteleaf
     output: true
-    description: "My thoughts and ideas" # The post list page content
+    #description: "My thoughts and ideas" # The post list page content
     feature_text: |
-      Welcome to the blog
+    On that day, I bid you remember this:That no matter how far your journey may take you, you stand where you stand by virtue of the road you walked to get there. |
+    For in times of hardship, when you fear you cannot go on…  |
+    The joy you have known, the pain you have felt, the prayers you have whispered and answered--they shall ever be your strength and your comfort.  |
     feature_image: "https://picsum.photos/2560/600?image=866"
 
 # 6. Jekyll collections settings
@@ -121,27 +123,23 @@ favicons: # Favicons are also used in the manifest file. Syntax is 'size: path'
 navigation_header:
 - title: Home
   url: /
-- title: Elements
-  url: /elements/
 - title: Blog
   url: /blog/
 - title: Categories
   url: /categories/
 - title: Search
   url: /search/
-- title: Fork Alembic
-  url: https://github.com/daviddarnes/alembic
 
 navigation_footer:
-- title: Created by David Darnes
+- title: Powered by David Darnes
   url: https://darn.es
 
 social_links: # Appears in sidebar. Set the urls then uncomment and comment out as desired
-  Twitter: https://twitter.com/DavidDarnes
-  LinkedIn: https://www.linkedin.com/in/daviddarnes
-  GitHub: https://github.com/daviddarnes
-  link: https://darn.es
-  RSS: /feed.xml
+  #Twitter: 
+  #LinkedIn: 
+  GitHub: https://github.com/vltavaw
+  #link: 
+  #RSS: /feed.xml
 
 sharing_links: # Appear at the bottom of single blog posts, add as desired. The value can be 'true' or the desired button colour
   Twitter: "#0d94e7"

@@ -1,0 +1,256 @@
+---
+title: GoPL读书笔记2
+categories:
+- Go
+---
+
+
+### Ch.3
+第三章讲述基本的数据类型。
+
+* Go有以下的整数类型。其中`rune`是`int32`的别名,`byte`是`uint8`的别名，(大概)分别用来存储utf-8 encoding和某些强调位而非数字的值。`int`和`uint`则可能是32也可能是64位，并且不可以和上述确定长度的类型混用，必须进行显式转换。`uintptr`用来存放指针。
+
+```go
+int8  int16  int32  int64
+uint8 uint16 uint32 uint64
+int uint uintptr  
+```
+
+* 浮点数遵循熟悉的IEEE 754 standard。复数则是分别由两种不同精度的浮点数组成实数和虚数部分，所以大小刚好是它们的两倍。
+
+```go
+float32   float64
+complex64 complex128
+```
+
+float接受科学计数法，大小写的e都可以。可以通过math.MaxFloat64看到浮点数的极限值。math包还带有Infinity/NaN。
+
+```go
+f := 1e7
+nan := math.NaN()
+```
+
+* Go里的bool不可以隐式转换成0/1值，反之亦然。
+
+* Go里的string是immutable的，极大降低了复制或者生成子串的开销。Go使用UTF-8编码，是456里学到的前缀编码，在压缩空间的同时不会产生歧义。`unicode/utf8`这个package里包含了很多有用的utility处理unicode字符。处理字符串常用的包有`bytes`,`strings`,`strconv`,`unicode`。`bytes`包主要针对byte slice，许多函数都和`strings`包里一一对应。`strconv`则是给各种conversion提供便利。
+
+* 常量生成器`iota`可以让我们在创建一系列const的时候节约工作。第一个值会被声明为0，然后逐级+1:
+```go
+type Weekday int
+const (
+    Sunday Weekday = iota
+    Monday
+    Tuesday
+    // ...
+    Saturday
+)
+```
+
+我们也可以用算术表达式结合`iota`完成更复杂的赋值。
+
+如果不声明常量的类型，那么直到必须evaluate之前常量都是无类型常量，暂时维持了极高的精度且不需要做type conversion。需要注意的是如果把无类型常量赋值给一个变量，那么会发生隐式转换。如果变量的类型也没有声明，那么会转为这一类变量的默认类型。
+
+```go
+i := 0       // i := int(0)
+r := '\000'  // r := rune('\000')
+f := 0.0     // f := float64(0.0)
+c := 0i      // c := complex128(0i)
+```
+
+最后给上一些上述数据类型printf的cheatsheet(在Go里叫做verb):
+
+|  类型  | 例子  | Verb |
+|  ----  | ----  | ----  |
+| 十进制  | 12 | %d  |
+| 二进制  | 1011 | %b  |
+| 字符  | a | %c  |
+| quoted  | 'a' | %q  |
+| bool  | true | %t  |
+| 指针  | - | %p  |
+| flaot  | 1.234 | %f  |
+| 2位精度  | 1.23 | %.2f  |
+| 科学计数法  | 1.234e+02 | %e  |
+| string  | abc | %s  |
+| bytes(hex) | 1a2bddef | %x  |
+
+### Ch.4
+第四章主要讲了array, slice, map和struct四种复合数据类型。
+
+#### 4.1 array
+使用如下的方式定义数组。
+
+```go
+var a [3]int                    //初始化为int类型的零值
+var b [3]int = [3]int{1, 2, 3}  //初始化
+c := [..]int{1,2,3}             //自动推断长度
+```
+
+Go里面的数组是定长的，因此`[3]int`和`[4]int`是不同的数据类型，不可以互相赋值。在数组元素的类型是可比较的情况下，数组本身也是可比较的，可以直接使用`==`operator。需要注意作为参数时，数组是值传递而非引用传递，所以无法影响原始数组。如果需要更改，那么就要传递数组的指针。
+
+```go
+// 无效
+func reverse(arr [3]int) {
+    // reverse
+}
+
+// 有效
+func reverse(arr *[3]int) {
+    // reverse
+}
+```
+
+#### 4.2 slice
+slice是元素类型相同的不定长序列。只需要把声明数组时的长度省略就可以了：
+
+```go
+months := [...]string{1: "January", ..., 12: "December"}
+```
+
+还可以通过`make`函数创建slice:
+
+```go
+s := make([]T, len, cap)
+```
+
+其中`len`是slice的长度，`cap`则指定了底层数组的capacity。如果省略`cap`，那么slice就引用一个`len`长度的整个数组。
+
+slice拥有一个底层数组，但是一个底层数组可以对应多个slice，这些slice都包含指向数组某个元素的指针。也就是说，slice是数组的别名，修改slice可以修改底层数组。正因为如此，slice不可以通过`==`操作符直接比较，除了`bytes.Equal`提供了`[]bytes`类型的比较函数，我们需要自己来进行深度比较。
+
+slice的零值是nil，即空指针，它没有底层数组，长度和容量都为0。
+
+通过for range遍历slice，通过append增长slice:
+
+```go
+var runes []rune
+for _, r := range "Hello, world" {
+    runes = append(runes, r)
+}
+``` 
+
+我们无法知道调用append是否会导致创建新的底层数组，所以安全起见必须把append的结果赋值给原始slice。
+
+#### 4.3 map
+map用`map[K]V`表示，其中key必须是`==`可比较的类型，以此监测键是否存在。通过literal或者`make`创建map:
+
+```go
+ages := make(map[string]int)
+
+ages := map[string]int{
+    "alice": 31,
+    "bob": 34,
+}
+``` 
+
+虽然很难受，但是尾部的逗号是必须的呜呜呜。不可以获取map元素的地址，即`&ages['bob']`会导致error。同时map中元素的顺序是随机的，因此当你想要一个list而非set的时候，需要调用sort包建一个数组人工排序再输出。
+
+当map查找元素的时候，即使对应的键没有存储，也会返回零值。这马上引入了一个tricky的问题，要如何判断这个键是空的还是值刚好为零，可以这样做：
+
+```go
+if age, ok := ages['bob']; !ok {
+    // ...
+}
+``` 
+
+map的key必须是可以通过`==`比较的，如果我们想要键是不可比较的类型，例如slice，就需要构建一个helper function，用fmt.Sprintf建立slice到string的映射，在使用这个map的时候对每一个元素调用helper function就可以了。
+
+```go
+var m = make(map[string]int)
+
+func k(list []string) string{
+    return fmt.Sprintf("%q",list)
+}
+
+func Add(list []string){
+    m[k(list)]++
+}
+
+func Count(list []string) int{
+    return m[k(list)]
+}
+```
+
+同样地，比如说想要在map里无视大小写进行string的比较，就可以用一个toLowerCase的辅助函数，把key统一化。
+
+#### 4.4 struct
+用如下的方式定义struct：
+
+```go
+type Employee struct {
+    ID       int
+    Name     string
+    Address  string
+    // ...
+}
+```
+
+struct的初始化一般不会使用省略名字的literal的方式，因为需要记住顺序，不管是可读性维护性还是自己写起来的体验都很差，可以通过带名称的方式来初始化。需要注意struct也遵循只有大写的成员可以导出的规则，所以要设置不可导出的变量的时候也不能使用字面量这种方式。
+
+```go
+p := Point{1, 2}
+harry := Employee{ID: 1, Name: "Harry Potter"}
+```
+
+访问结构体的成员用`.`操作符，也可以用指针。
+```go
+var harry Employee
+name = harry.Name
+position := &harry.Position
+*position = "Auror"
+```
+
+一个结构体可以比较当且仅当结构体里所有的成员变量可以比较。可以比较的结构体也可以作为map的key！
+
+Go中的结构体有一个结构体嵌套机制，假如有以下的图形：
+```go
+type Point struct {
+    X, Y int
+}
+
+type Circle struct {
+    Center Point
+    Radius int
+}
+
+type Wheel struct {
+    Circle Circle
+    Spokes int
+}
+```
+
+如果要访问Wheel的圆心的x坐标，就需要使用`Wheel.Circle.Center.X`这个长长的表达式。如果使用语法糖定义匿名成员，就可以直接访问`Wheel.X`:
+
+```go
+type Circle struct {
+    Point
+    Radius int
+}
+
+type Wheel struct {
+    Circle
+    Spokes int
+}
+```
+
+然而struct在创建的时候无法利用匿名机制。要初始化wheel只能用如下的方法：
+
+
+```go
+// both works
+w = Wheel{Circle{Point{8, 8}, 5}, 20}
+
+w = Wheel{
+    Circle: Circle{
+        Point: Point{X: 8, Y: 8},
+        Radius: 5,
+    },
+    Spokes: 20,
+}
+```
+
+显然，一个struct也不能同时拥有两个类型一致的匿名成员。
+
+#### 4.5 JSON
+
+`name: value`的形式一看就很适合map或者struct. `encoding/json`,`encoding/xml`,`encoding/asn1`对于种种数据格式进行了支持。
+
+TBC
